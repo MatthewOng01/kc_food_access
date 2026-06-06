@@ -1,7 +1,9 @@
 # Kansas City Food Access & Neighborhood Conditions
 
 **[Live Map →](https://matthewong01.github.io/kc-food-access-map)**
+
 **[Map Repository →](https://github.com/MatthewOng01/kc-food-access-map)**
+
 **[Portfolio →](https://MatthewOng01.github.io)**
 
 An interactive GIS analysis of food access, housing conditions, and neighborhood economic characteristics across Census tracts in Jackson County, Missouri. Built as part of a broader research interest in urban amenity gaps and their relationship to real estate market conditions in Kansas City.
