@@ -131,4 +131,6 @@ All data acquisition, cleaning, and spatial processing is performed in a single 
 
 ---
 
-*Matthew Ong · Master's Student, Economics · 2026*
+**Matthew Ong · Real Estate & Economic Analysis**
+
+[LinkedIn](https://linkedin.com/in/matthewong01) · [GitHub](https://github.com/matthewong01)
