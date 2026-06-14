@@ -15,10 +15,7 @@
 #   60% AMI = $49,620 — federal LIHTC eligibility threshold
 # =============================================================================
 
-
-# -----------------------------------------------------------------------------
 # 1. Load Libraries
-# -----------------------------------------------------------------------------
 
 library(tidycensus)
 library(tidyverse)
@@ -27,28 +24,23 @@ library(lubridate)
 library(readr)
 
 
-# -----------------------------------------------------------------------------
 # 2. Census API Key
-# Note: Run census_api_key() once to install permanently.
-# Register for a free key at: https://api.census.gov/data/key_signup.html
-# -----------------------------------------------------------------------------
+# Only run census_api_key() once to install permanently.
+# Keys are freely available: https://api.census.gov/data/key_signup.html
 
-# census_api_key("YOUR_KEY_HERE", install = TRUE)
+# census_api_key("Key", install = TRUE)
 
-
-# -----------------------------------------------------------------------------
 # 3. Pull Census Data (ACS 2019, Jackson County, MO)
-# -----------------------------------------------------------------------------
 
 kc_tracts <- get_acs(
   geography = "tract",
   variables = c(
-    pop        = "B01003_001",   # Total population
-    income     = "B19013_001",   # Median household income
-    rent       = "B25064_001",   # Median gross rent
-    home_value = "B25077_001",   # Median home value (owner-occupied)
-    vacant_units = "B25002_003", # Vacant housing units
-    total_units  = "B25002_001"  # Total housing units
+    pop        = "B01003_001",
+    income     = "B19013_001", 
+    rent       = "B25064_001",  
+    home_value = "B25077_001",   
+    vacant_units = "B25002_003", 
+    total_units  = "B25002_001" 
   ),
   state    = "MO",
   county   = "Jackson",
@@ -56,8 +48,6 @@ kc_tracts <- get_acs(
   output   = "wide",
   year     = 2019
 )
-
-# Drop margin of error columns, rename estimate columns
 kc_tracts <- kc_tracts %>%
   select(-ends_with("_M")) %>%
   rename(
@@ -69,10 +59,7 @@ kc_tracts <- kc_tracts %>%
     total_units  = total_units_E
   )
 
-
-# -----------------------------------------------------------------------------
 # 4. Derive Housing Variables
-# -----------------------------------------------------------------------------
 
 kc_tracts <- kc_tracts %>%
   mutate(
@@ -80,12 +67,7 @@ kc_tracts <- kc_tracts %>%
   ) %>%
   select(-vacant_units, -total_units)
 
-
-# -----------------------------------------------------------------------------
 # 5. AMI Thresholds
-# Note: Using flat area-wide AMI; HUD publishes household-size-adjusted
-# figures for more precise analysis.
-# -----------------------------------------------------------------------------
 
 ami_2019 <- 82700
 
@@ -96,23 +78,13 @@ kc_tracts <- kc_tracts %>%
   )
 
 
-# -----------------------------------------------------------------------------
 # 6. Drop Tracts with Missing Income
-# These are typically non-residential tracts (parks, stadiums) with
-# insufficient population for Census estimates.
-# -----------------------------------------------------------------------------
 
 kc_tracts <- kc_tracts %>%
   filter(!is.na(income))
 
 
-# -----------------------------------------------------------------------------
 # 7. USDA Food Access Research Atlas
-# Source: https://www.ers.usda.gov/data-products/food-access-research-atlas/
-# Note: Atlas uses 2010 Census tract boundaries, consistent with 2019 ACS.
-# lapop10share excluded — USDA uses 1-mile threshold for urban tracts;
-# 10-mile threshold applies to rural areas only and is null for KC tracts.
-# -----------------------------------------------------------------------------
 
 food_atlas <- read_csv("FoodAccessAtlas2019.csv")
 
@@ -126,14 +98,12 @@ food_atlas_slim <- food_atlas %>%
     TractSNAP           # SNAP participants
   )
 
-# Inner join — keeps only Jackson County tracts matched in both datasets
+# join
 kc_tracts <- kc_tracts %>%
   inner_join(food_atlas_slim, by = c("GEOID" = "CensusTract"))
 
 
-# -----------------------------------------------------------------------------
-# 8. Derive SNAP and No-Vehicle Rate Variables
-# -----------------------------------------------------------------------------
+# 8. Derive percent variables
 
 kc_tracts <- kc_tracts %>%
   mutate(
@@ -142,9 +112,7 @@ kc_tracts <- kc_tracts %>%
   )
 
 
-# -----------------------------------------------------------------------------
 # 9. Export Census / Food Access Data
-# -----------------------------------------------------------------------------
 
 st_write(kc_tracts, "kc_tracts.geojson", delete_dsn = TRUE)
 
@@ -153,13 +121,7 @@ kc_tracts %>%
   write_csv("kc_tracts.csv")
 
 
-# -----------------------------------------------------------------------------
 # 10. SNAP Retailer Data — Grocery Store Locations
-# Source: USDA FNS SNAP Retailer Locator
-# https://www.fns.usda.gov/snap/retailer-locator
-# Filtered to stores active as of January 1, 2019 to match ACS vintage.
-# Blank EndDate = store currently active.
-# -----------------------------------------------------------------------------
 
 snap_retailers <- read_csv("SNAP_Retailer_Data.csv")
 
@@ -169,13 +131,11 @@ snap_kc <- snap_retailers %>%
     County == "JACKSON"
   )
 
-# Retain stores active during study period
-# Blank EndDate indicates currently active; parse as NA and retain
+# keep only active for 2019
 snap_kc <- snap_kc %>%
   mutate(end_date = mdy(EndDate)) %>%
   filter(is.na(end_date) | end_date >= as.Date("2019-01-01"))
 
-# Keep only full-service grocery store types
 # Excludes convenience stores, pharmacies, dollar stores
 snap_kc <- snap_kc %>%
   filter(StoreType %in% c(
@@ -199,23 +159,14 @@ snap_sf <- snap_kc %>%
 st_write(snap_sf, "snap_grocery_stores.geojson", delete_dsn = TRUE)
 
 
-# -----------------------------------------------------------------------------
-# 11. KCATA Transit Data — Bus Stops and Routes
-# Source: Kansas City Area Transportation Authority GTFS Feed (2026)
-# Note: 2026 GTFS feed used for route/stop geometry; transit network
-# structure is consistent with study period for spatial analysis purposes.
-# GTFS files sourced from: https://www.kcata.org
-# -----------------------------------------------------------------------------
+# 11. KCATA Transit Data — Bus Stops and Routes -- spatial for QGIS
 
 stops  <- read_csv("kc_transit/stops.txt")
 shapes <- read_csv("kc_transit/shapes.txt")
 
-# Bus stops as point layer
 stops_sf <- stops %>%
   st_as_sf(coords = c("stop_lon", "stop_lat"), crs = 4326)
 
-# Bus routes as line layer
-# shapes.txt stores routes as ordered point sequences — convert to linestrings
 routes_sf <- shapes %>%
   arrange(shape_id, shape_pt_sequence) %>%
   group_by(shape_id) %>%
@@ -224,5 +175,6 @@ routes_sf <- shapes %>%
   ) %>%
   st_as_sf(crs = 4326)
 
+# export
 st_write(stops_sf,  "kcata_stops.geojson",  delete_dsn = TRUE)
 st_write(routes_sf, "kcata_routes.geojson", delete_dsn = TRUE)
