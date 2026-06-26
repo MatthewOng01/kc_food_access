@@ -1,6 +1,6 @@
 # Kansas City Food Access & Neighborhood Conditions
 
-**[Live Map →](https://matthewong01.github.io/kc-food-access-map)**
+**[Live Map →](https://matthewong01.github.io/kc-food-access/map)**
 
 **[Portfolio →](https://MatthewOng01.github.io/kc-food-access)**
 
